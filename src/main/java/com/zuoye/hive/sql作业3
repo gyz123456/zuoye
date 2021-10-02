@@ -41,4 +41,4 @@ from(
     sum(flag) over(partition by id order by ts) part
     from t
     ) tmp
-group by id, part
+group by id, part;
