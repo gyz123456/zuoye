@@ -1,0 +1,19 @@
+1.找出全部夺得3连贯的队伍
+
+with tmp as
+(
+select team, year,
+year - row_number() over(partition by team order by year) year_sub
+from t1
+where year is not null
+)
+
+select distinct(team)
+from
+(
+    select team, count(1) cnt
+    from tmp
+    group by team, year_sub
+    having cnt >=3
+) tmp2
+;

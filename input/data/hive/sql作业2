@@ -1,0 +1,21 @@
+2.找出每个id在在一天之内所有的波峰与波谷值
+
+select id,time,price, '波峰' feature
+from(
+select id, time, price,
+max(price) over(partition by id rows between unbounded preceding and unbounded following) max_price
+from t2
+) tmp1
+where price = max_price
+
+union all
+
+select id,time,price, '波谷' feature
+from(
+select id, time, price,
+min(price) over(partition by id rows between unbounded preceding and unbounded following) min_price
+from t2
+) tmp2
+where price = min_price
+
+order by id, feature;

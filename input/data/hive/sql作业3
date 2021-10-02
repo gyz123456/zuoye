@@ -1,0 +1,44 @@
+3.1、每个id浏览时长、步长
+select
+    id,
+    (unix_timestamp(max_dt, 'yyyy/MM/dd HH:mm') - unix_timestamp(min_dt, 'yyyy/MM/dd HH:mm')) / 60 minute_sub,
+    cnt
+from(
+    select id, max(dt) max_dt, min(dt) min_dt, count(1) cnt
+    from t3
+    group by id
+) tmp ;
+
+
+3.2、如果两次浏览之间的间隔超过30分钟，认为是两个不同的浏览时间；再求每个id浏览时长、步长
+解题思路：
+    1.使用lag函数求出与上一次浏览时间的时间差分钟数，如果大于30分钟标记为1
+    2.对相同id的数据，开窗对标记求sum，这样可以给不同标记时间的数据打上标记
+    3.浏览时长需要将第一次的浏览的时间间隔改为0
+    4.对id和标记groupby即可得出结果
+with t as(
+select id, dt, ts, flag,
+case when flag = 1 then 0
+else minute_interval
+end minute_interval
+from(
+    select  id, dt, ts,
+    (ts - coalesce( lag(ts) over(partition by id order by ts), ts )) / 60 minute_interval,
+        case when(ts - coalesce( lag(ts) over(partition by id order by ts), ts )) / 60 > 30 then 1
+        else 0
+        end flag
+    from (
+        select id, dt, unix_timestamp(dt,'yyyy/MM/dd HH:mm') ts
+        from t3
+        ) tmp
+    ) tmp2
+)
+
+
+select id, sum(minute_interval), count(1)
+from(
+    select id, dt, ts, minute_interval, flag,
+    sum(flag) over(partition by id order by ts) part
+    from t
+    ) tmp
+group by id, part
