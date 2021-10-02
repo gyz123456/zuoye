@@ -1,0 +1,23 @@
+with t0 as(
+select user_id, click_time,
+round(nvl((unix_timestamp(click_time, 'yyyy-MM-dd HH:mm:ss') - unix_timestamp(lag(click_time) over(partition by user_id order by click_time asc), 'yyyy-MM-dd HH:mm:ss')), 0) / 60, 1) interval_min
+from user_clicklog
+)
+
+select user_id, click_time,
+row_number() over(partition by user_id, flag order by click_time asc) rm
+from(
+    select user_id, click_time, interval_min,feature,
+    sum(feature) over(partition by user_id order by click_time asc) flag
+    from(
+        select user_id, click_time, interval_min,
+            case when interval_min > 30 then 1
+            else 0 end feature
+        from t0
+        ) tmp1
+    ) tmp2;
+
+解题思路：
+    1.首先每个user_id, 获取当前点击的时间与上次点击的差额，如果大于30分钟，则标记为1
+    2.sum() over(partition by user_id order by click_time) ,给同一个会话内的数据赋予相同的标记 flag
+    3.再次开窗，进行排序 row_number() over(partition by user_id, flag order by click_time asc),删除多余字段就是结果
