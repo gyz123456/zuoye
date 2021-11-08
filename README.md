@@ -32,4 +32,16 @@
 		
 		4.对id和标记groupby即可得出结果
 		
+
+
+作业3：impala
+
+代码位置 com.zuoye.impala
+
+	解题思路：
 	
+     	 1.首先每个user_id, 获取当前点击的时间与上次点击的差额，如果大于30分钟，则标记为1
+	
+     	2.sum() over(partition by user_id order by click_time) ,给同一个会话内的数据赋予相同的标记 flag
+	
+    	3.再次开窗，进行排序 row_number() over(partition by user_id, flag order by click_time asc),删除多余字段就是结果
